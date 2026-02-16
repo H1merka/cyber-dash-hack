@@ -3,6 +3,12 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Project runtime data
+data/
+
+# Node
+node_modules/
+
 # C extensions
 *.so
 
@@ -205,3 +211,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Extras
+.github/
