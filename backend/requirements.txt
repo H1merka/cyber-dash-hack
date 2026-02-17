@@ -1,0 +1,38 @@
+# Backend dependencies for Virtual World project
+# Python 3.10+
+
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+websockets==14.2
+
+# Data validation
+pydantic==2.10.5
+pydantic-settings==2.7.1
+
+# Database
+sqlalchemy[asyncio]==2.0.37
+aiosqlite==0.20.0
+
+# Vector database (episodic memory)
+chromadb==0.6.3
+
+# Multilingual embeddings for Russian language
+sentence-transformers==3.4.1
+
+# LLM providers
+google-generativeai==0.8.4
+groq==0.15.0
+
+# Environment variables
+python-dotenv==1.0.1
+
+# HTTP client (for LLM API calls)
+httpx==0.28.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.2
+
+# Logging
+loguru==0.7.3
