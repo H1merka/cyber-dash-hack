@@ -64,9 +64,9 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
       {/* Новое событие */}
       <div
         style={{
-          background: "rgba(30,30,40,0.85)",
+          background: "rgba(10,40,25,0.85)",
           borderRadius: 16,
-          border: "1px solid #333",
+          border: "1px solid #1a4a2a",
           padding: compact ? "10px 12px" : "14px 16px",
         }}
       >
@@ -82,8 +82,8 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
             width: "100%",
             padding: "8px 10px",
             borderRadius: 8,
-            border: "1px solid #444",
-            background: "#1a1a2a",
+            border: "1px solid #1a4a2a",
+            background: "#0f2a1a",
             color: "#ccc",
             fontSize: 13,
             marginBottom: 8,
@@ -96,7 +96,7 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
             style={{
               padding: "6px 14px",
               borderRadius: 8,
-              border: "1px solid #555",
+              border: "1px solid #2a5a3a",
               background: "transparent",
               color: "#aaa",
               fontSize: 12,
@@ -111,7 +111,7 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
               padding: "6px 14px",
               borderRadius: 8,
               border: "none",
-              background: "#6366f1",
+              background: "#22c55e",
               color: "#fff",
               fontSize: 12,
               cursor: "pointer",
@@ -125,9 +125,9 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
       {/* Отправить сообщение агенту */}
       <div
         style={{
-          background: "rgba(30,30,40,0.85)",
+          background: "rgba(10,40,25,0.85)",
           borderRadius: 16,
-          border: "1px solid #333",
+          border: "1px solid #1a4a2a",
           padding: compact ? "10px 12px" : "14px 16px",
         }}
       >
@@ -141,8 +141,8 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
             width: "100%",
             padding: "8px 10px",
             borderRadius: 8,
-            border: "1px solid #444",
-            background: "#1a1a2a",
+            border: "1px solid #1a4a2a",
+            background: "#0f2a1a",
             color: "#ccc",
             fontSize: 13,
             marginBottom: 8,
@@ -164,8 +164,8 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
             width: "100%",
             padding: "8px 10px",
             borderRadius: 8,
-            border: "1px solid #444",
-            background: "#1a1a2a",
+            border: "1px solid #1a4a2a",
+            background: "#0f2a1a",
             color: "#ccc",
             fontSize: 13,
             marginBottom: 8,
@@ -179,7 +179,7 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
             padding: "8px 14px",
             borderRadius: 8,
             border: "none",
-            background: "#6366f1",
+            background: "#22c55e",
             color: "#fff",
             fontSize: 13,
             cursor: "pointer",
@@ -192,9 +192,9 @@ export default function ControlPanel({ agents, onRefresh, compact }: Props) {
       {/* Скорость симуляции */}
       <div
         style={{
-          background: "rgba(30,30,40,0.85)",
+          background: "rgba(10,40,25,0.85)",
           borderRadius: 16,
-          border: "1px solid #333",
+          border: "1px solid #1a4a2a",
           padding: "14px 16px",
           display: "flex",
           alignItems: "center",

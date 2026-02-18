@@ -24,10 +24,12 @@ class Memory:
         persist_directory: папка для хранения данных ChromaDB
         summarization_limit: после скольких воспоминаний запускать суммирование
         """
-        self.client = chromadb.Client(Settings(
-            persist_directory=persist_directory,
-            anonymized_telemetry=False
-        ))
+        self.client = chromadb.PersistentClient(
+            path=persist_directory,
+            settings=Settings(
+                anonymized_telemetry=False,
+            ),
+        )
         self.collection_name = f"agent_{agent_id}"
         # Используем get_or_create вместо delete+create чтобы сохранять данные между перезапусками
         self.collection = self.client.get_or_create_collection(

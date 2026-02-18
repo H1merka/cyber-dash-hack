@@ -67,9 +67,9 @@ export default function RelationGraph({ agents, relationships, compact, onSelect
   return (
     <div
       style={{
-        background: "rgba(30,30,40,0.85)",
+        background: "rgba(10,40,25,0.85)",
         borderRadius: compact ? 12 : 16,
-        border: "1px solid #333",
+        border: "1px solid #1a4a2a",
         padding: compact ? "10px 12px" : "14px 16px",
         flex: 1,
         display: "flex",
@@ -127,7 +127,7 @@ export default function RelationGraph({ agents, relationships, compact, onSelect
               style={{ cursor: "pointer" }}
               onClick={() => onSelectAgent?.(agent.id)}
             >
-              <circle cx={pos.x} cy={pos.y} r={26} fill="#2a2a3a" stroke="#555" strokeWidth={1.5} />
+              <circle cx={pos.x} cy={pos.y} r={26} fill="#0f2a1a" stroke="#2a5a3a" strokeWidth={1.5} />
               <text
                 x={pos.x}
                 y={pos.y + 8}

@@ -15,7 +15,7 @@ html, body, #app {
 
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
-  background: #0a0a14;
+  background: #0a1a0f;
   color: #ccc;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -30,13 +30,13 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #2a5a3a;
   border-radius: 3px;
 }
 
 /* Selection */
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background: rgba(34, 197, 94, 0.3);
 }
 
 /* ── Page layout ─────────────────────────────────────── */
@@ -45,7 +45,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #0a0a14;
+  background: #0a1a0f;
   color: #ccc;
   font-family: 'Segoe UI', Arial, sans-serif;
   padding: 16px 20px;
@@ -83,6 +83,7 @@ body {
   flex-wrap: wrap;
   margin-bottom: 14px;
   flex-shrink: 0;
+  justify-content: center;
 }
 
 /* Основная сетка */

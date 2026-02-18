@@ -20,9 +20,9 @@ export default function EventFeed({ events, loading }: Props) {
   return (
     <div
       style={{
-        background: "rgba(30,30,40,0.85)",
+        background: "rgba(10,40,25,0.85)",
         borderRadius: 16,
-        border: "1px solid #333",
+        border: "1px solid #1a4a2a",
         padding: "14px 16px",
         display: "flex",
         flexDirection: "column",
@@ -58,7 +58,7 @@ export default function EventFeed({ events, loading }: Props) {
             fontSize: 13,
             color: "#ccc",
             padding: "4px 0",
-            borderBottom: "1px solid #222",
+            borderBottom: "1px solid #1a3a25",
           }}
         >
           <span style={{ color: "#666", marginRight: 6, fontFamily: "monospace" }}>

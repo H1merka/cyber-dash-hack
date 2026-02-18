@@ -28,7 +28,7 @@ export default function AgentCard({ agent, selected, compact, onClick }: Props) 
     <div
       onClick={onClick}
       style={{
-        background: "rgba(30,30,40,0.85)",
+        background: "rgba(10,40,25,0.85)",
         borderRadius: compact ? 12 : 16,
         border: `2px solid ${borderColor}`,
         padding: compact ? "8px 12px" : "14px 18px",
