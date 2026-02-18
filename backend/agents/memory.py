@@ -9,8 +9,11 @@ from chromadb.config import Settings
 import uuid
 from datetime import datetime
 import asyncio
-from llm.client import LLMClient
+import logging
+from backend.llm.client import LLMClient
+from backend.llm.prompts import SUMMARIZE_SYSTEM, SUMMARIZE_PROMPT_TEMPLATE
 
+logger = logging.getLogger(__name__)
 
 
 class Memory:
@@ -26,18 +29,15 @@ class Memory:
             anonymized_telemetry=False
         ))
         self.collection_name = f"agent_{agent_id}"
-        try:
-            self.client.delete_collection(self.collection_name)
-        except:
-            pass
-        self.collection = self.client.create_collection(
+        # Используем get_or_create вместо delete+create чтобы сохранять данные между перезапусками
+        self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"}
         )
         self.agent_id = agent_id
         self.summarization_limit = summarization_limit
-        # счет количества записей
-        self._count = 0
+        # Инициализируем счётчик реальным количеством записей
+        self._count = self.collection.count()
 
 
 
@@ -121,17 +121,16 @@ class Memory:
         if not texts:
             return "Нет событий."
 
-        prompt = "Суммируй следующие события в одно краткое предложение:\n"
-        for i, t in enumerate(texts, 1):
-            prompt += f"{i}. {t}\n"
-        prompt += "Суммаризация:"
+        events_list = "\n".join(f"{i}. {t}" for i, t in enumerate(texts, 1))
+        prompt = SUMMARIZE_PROMPT_TEMPLATE.format(events_list=events_list)
 
-        llm = LLMClient()
-        summary = await llm.generate(
-            prompt,
-            system_prompt="Ты помощник, который кратко суммирует список событий. Отвечай только одним предложением."
-        )
-        return summary
+        try:
+            llm = LLMClient()
+            summary = await llm.generate(prompt, system_prompt=SUMMARIZE_SYSTEM)
+            return summary
+        except Exception:
+            logger.exception("Ошибка суммаризации памяти агента %s", self.agent_id)
+            return "Произошло несколько событий."
 
 
 

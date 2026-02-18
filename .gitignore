@@ -1,6 +1,41 @@
-node_modules/
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
 dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.whl
+
+# Node
+node_modules/
 .vite/
-*.log
-.DS_Store
+
+# Data
+data/
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Extras
+.github/

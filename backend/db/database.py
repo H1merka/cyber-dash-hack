@@ -1,195 +1,208 @@
-import sqlite3
+"""
+Асинхронное подключение к SQLite через SQLAlchemy + aiosqlite.
+- Создание таблиц
+- Фабрика сессий
+- Начальные данные (seed)
+"""
+
+from __future__ import annotations
+
+import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 
-DB_NAME = "agents.db"
+from sqlalchemy import event, select, func
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from backend.config import settings
+from backend.db.models import (
+    AgentModel,
+    Base,
+    EventModel,
+    GoalModel,
+    MemoryModel,
+    RelationshipModel,
+)
+
+logger = logging.getLogger(__name__)
+
+# ─── Engine & Session ────────────────────────────────────────────────
+
+engine = create_async_engine(
+    settings.db_url,
+    echo=False,
+    connect_args={"check_same_thread": False},
+)
+
+async_session = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 
-def create_tables(conn):
-    cursor = conn.cursor()
+# Включаем foreign keys для SQLite (обязательно для каждого соединения)
+@event.listens_for(engine.sync_engine, "connect")
+def _set_sqlite_pragma(dbapi_conn, _connection_record):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS agents (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,              -- имя
-                mood TEXT NOT NULL,                     -- настроение 
-                personality_description TEXT,           -- характер 
-                personality_type TEXT,                  -- тип личности
-                background TEXT,                        -- предыстория
-                origin TEXT,                            -- происхождение
-                avatar_color TEXT DEFAULT '#cccccc',    -- цвет персонажа
-                avatar_url TEXT,                        -- ссылка на изображение
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+# ─── Инициализация БД ───────────────────────────────────────────────
+
+async def init_db() -> None:
+    """Создать таблицы и заполнить начальными данными, если БД пуста."""
+    # Убедиться, что каталог для файла БД существует
+    db_file = Path(settings.db_url.replace("sqlite+aiosqlite:///", ""))
+    db_file.parent.mkdir(parents=True, exist_ok=True)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # Проверяем, есть ли уже данные
+    async with async_session() as session:
+        count = (await session.execute(select(func.count(AgentModel.id)))).scalar() or 0
+        if count == 0:
+            await _seed_data(session)
+            logger.info("База данных заполнена начальными данными (seed)")
+
+
+# ─── Seed-данные ─────────────────────────────────────────────────────
+
+async def _seed_data(session: AsyncSession) -> None:
+    """Вставить начальных персонажей, отношения, воспоминания, цели и первое событие."""
+
+    # --- Агенты ---
+    agents_raw = [
+        {
+            "name": "Мо",
+            "mood": "счастлив",
+            "personality_type": "ISFP",
+            "personality_title": "мечтатель",
+            "description": "Панда Мо любит тишину и ручьи.",
+            "background": "Живёт у ручья, любит ягоды",
+            "avatar_emoji": "🐼",
+            "mood_value": 60,
+        },
+        {
+            "name": "Роки",
+            "mood": "грустный",
+            "personality_type": "ENTP",
+            "personality_title": "изобретатель",
+            "description": "Лис Роки придумывает рискованные идеи.",
+            "background": "Всегда ищет приключения",
+            "avatar_emoji": "🦊",
+            "mood_value": -30,
+        },
+        {
+            "name": "Фыр",
+            "mood": "злой",
+            "personality_type": "ISTJ",
+            "personality_title": "хранитель",
+            "description": "Ежик Фыр защищает свои границы.",
+            "background": "Живёт в норе под дубом",
+            "avatar_emoji": "🦔",
+            "mood_value": -50,
+        },
+        {
+            "name": "Лея",
+            "mood": "нейтральный",
+            "personality_type": "INTJ",
+            "personality_title": "стратег",
+            "description": "Змея Лея анализирует каждую ситуацию.",
+            "background": "Обитает в пещере",
+            "avatar_emoji": "🐍",
+            "mood_value": 0,
+        },
+        {
+            "name": "Феликс",
+            "mood": "напуган",
+            "personality_type": "INFJ",
+            "personality_title": "мистик",
+            "description": "Кот Феликс чувствителен к изменениям.",
+            "background": "Прячется в кустах",
+            "avatar_emoji": "🐱",
+            "mood_value": -40,
+        },
+    ]
+
+    agent_objects: dict[str, AgentModel] = {}
+    for data in agents_raw:
+        agent = AgentModel(**data)
+        session.add(agent)
+        agent_objects[data["name"]] = agent
+
+    await session.flush()  # получить id
+
+    # --- Отношения ---
+    rels_raw = [
+        ("Мо", "Роки", "друзья", 72),
+        ("Роки", "Мо", "друзья", 68),
+        ("Роки", "Фыр", "напряжение", 74),
+        ("Мо", "Фыр", "забота", 63),
+        ("Феликс", "Лея", "уважение", 56),
+        ("Лея", "Роки", "нейтральные", 48),
+    ]
+    for from_name, to_name, rtype, strength in rels_raw:
+        session.add(
+            RelationshipModel(
+                agent_from_id=agent_objects[from_name].id,
+                agent_to_id=agent_objects[to_name].id,
+                relation_type=rtype,
+                strength=strength,
             )
-        """)
+        )
 
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS relationships (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                agent_from_id INTEGER NOT NULL,             -- связь от кого
-                agent_to_id INTEGER NOT NULL,               -- связь к кому
-                sympathy_level REAL DEFAULT 0.0,            -- от -1.0 до 1.0
-                relationship_type TEXT,                     -- например 'друзья', 'враги', 'забота'
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (agent_from_id) REFERENCES agents(id) ON DELETE CASCADE,
-                FOREIGN KEY (agent_to_id) REFERENCES agents(id) ON DELETE CASCADE
-            )
-        """)
-
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS memories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                agent_id INTEGER NOT NULL,              -- тип персонажа   
-                content TEXT NOT NULL,                  -- о чем воспоминания
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_key BOOLEAN DEFAULT 0,               -- ключевое воспоминание (для отображения)
-                summary TEXT,                           -- о чем в кратце
-                embedding BLOB,
-                FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
-            )
-        """)
-
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS goals (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                agent_id INTEGER NOT NULL,          -- тип персонажа
-                goal TEXT NOT NULL,                 -- цель
-                status TEXT DEFAULT 'active',       -- active, completed, abandoned
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                deadline TIMESTAMP,                  -- опционально, когда планируется выполнить
-                FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
-            )
-        """)
-
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                from_agent INTEGER NOT NULL,         -- от кого сообщение
-                to_agent INTEGER NOT NULL,           -- кому
-                content TEXT NOT NULL,               -- содержание сообщения
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (from_agent) REFERENCES agents(id) ON DELETE CASCADE,
-                FOREIGN KEY (to_agent) REFERENCES agents(id) ON DELETE CASCADE
-            )
-        """)
-
-    conn.commit()
-
-# Функция заполнения профиля персонажей
-def insert_initial_agents(conn):
-    agents_data = [
-        ("Мо", "Счастливая", "Добрая и любознательная панда", "ENFP", "Живёт у ручья, любит ягоды", "Местный житель",
-         "#8B4513"),
-        ("Роки", "Грустный", "Хитрый лис, склонный к авантюрам", "ISTP", "Всегда ищет приключения", "Местный житель",
-         "#FF4500"),
-        ("Фыр", "Злой", "Колючий ёжик, недоверчивый", "INTJ", "Живёт в норе под дубом", "Местный житель", "#2E8B57"),
-        ("Лея", "Спокойная", "Мудрая змея, наблюдатель", "INFJ", "Обитает в пещере", "Местный житель", "#556B2F"),
+    # --- Воспоминания для Мо ---
+    mo = agent_objects["Мо"]
+    memories_raw = [
         (
-        "Феликс", "Напуган", "Трусливый заяц, но верный друг", "ISFP", "Прячется в кустах", "Местный житель", "#C0C0C0")
+            "Обнаружил скрытую поляну со старыми цветущими сакурами, "
+            "их лепестки танцевали в лунном свете.",
+            datetime.now() - timedelta(hours=5),
+            True,
+        ),
+        (
+            "Вместе с Феликсом нашли светящийся камень под старым дубом. "
+            "Договорились никому не рассказывать.",
+            datetime.now() - timedelta(days=60),
+            True,
+        ),
+        (
+            "Нашёл потерявшегося малыша-оленёнка и согревал его всю ночь, "
+            "пока не пришла его мама. На следующий день она принесла мне ягоды.",
+            datetime.now() - timedelta(days=365),
+            True,
+        ),
     ]
-    cursor = conn.cursor()
+    for content, ts, is_key in memories_raw:
+        session.add(
+            MemoryModel(agent_id=mo.id, content=content, timestamp=ts, is_key=is_key)
+        )
 
-    for name, mood, personality_desc, personality_type, background, origin, color in agents_data:
-        try:
-            cursor.execute("""
-                    INSERT INTO agents (name, mood, personality_description, personality_type, background, origin, avatar_color)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (name, mood, personality_desc, personality_type, background, origin, color))
-        except sqlite3.IntegrityError:
-            print(f"Агент '{name}' уже есть, пропуск.")
-
-    conn.commit()
-
-
-# Функция заполнения отношений между персонажами
-def insert_initial_relationships(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM agents")
-    agents = {name: id for id, name in cursor.fetchall()}
-
-    relations = [
-        (agents["Мо"], agents["Роки"], 0.2, "нейтральные"),
-        (agents["Мо"], agents["Фыр"], 0.8, "друзья"),
-        (agents["Роки"], agents["Мо"], 0.5, "симпатия"),
-        (agents["Фыр"], agents["Мо"], -0.3, "настороженность"),
-        (agents["Лея"], agents["Роки"], 0.0, "наблюдение"),
-        (agents["Феликс"], agents["Фыр"], -0.6, "страх"),
+    # --- Цели для Мо ---
+    goals_raw = [
+        "Посетить ручей: вернуться к ручью, чтобы проверить, поёт ли вода днём.",
+        "Дождаться заката на скале Эха и послушать, как ветер свистит.",
+        "Найти место, где видно созвездие Большой Медведицы, и просто смотреть вверх.",
     ]
+    for goal_text in goals_raw:
+        session.add(GoalModel(agent_id=mo.id, goal=goal_text, status="active"))
 
-    for from_id, to_id, level, rtype in relations:
+    # --- Начальное событие ---
+    session.add(
+        EventModel(
+            content="Панда Мо медленно прогуливается у ручья.",
+            actor_id=mo.id,
+            mood_after="счастлив",
+            relation_type="нейтральные",
+            relation_delta=0,
+        )
+    )
 
-        try:
-            cursor.execute("""
-                INSERT INTO relationships (agent_from_id, agent_to_id, sympathy_level, relationship_type)
-                VALUES (?, ?, ?, ?)
-            """, (from_id, to_id, level, rtype))
-
-        except sqlite3.IntegrityError:
-            cursor.execute("""
-                UPDATE relationships SET sympathy_level = ?, relationship_type = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE agent_from_id = ? AND agent_to_id = ?
-            """, (level, rtype, from_id, to_id))
-
-    conn.commit()
-
-
-# Функция заполнения воспоминаний и целей для персонажей
-def insert_sample_memories_and_goals(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM agents WHERE name = 'Мо'")
-    mo_id = cursor.fetchone()[0]
-
-    # Пример заполнения воспоминаниями для Мо
-    memories = [
-        (mo_id, "Обнаружил скрытую поляну со старыми цветущими сакурами, их лепестки танцевали в лунном свете.",
-         datetime.now() - timedelta(hours=5), True),
-        (mo_id, "Вместе с Феликсом нашли светящийся камень под старым дубом. Договорились никому не рассказывать.",
-         datetime.now() - timedelta(days=60), True),
-        (mo_id, "Нашёл потерявшегося малыша-денёта и согревал его всю ночь, пока не пришла его мама. На следующий день она принесла мне ягоды.",
-         datetime.now() - timedelta(days=365), True),
-    ]
-
-    for agent_id, content, ts, is_key in memories:
-        cursor.execute("""
-            INSERT INTO memories (agent_id, content, timestamp, is_key)
-            VALUES (?, ?, ?, ?)
-        """, (agent_id, content, ts, is_key))
-
-    # Определение целей
-    goals = [
-        (mo_id, "Посетить ручей: вернуться к ручью, чтобы проверить, поёт ли вода днём.", "active"),
-        (mo_id, "Дождаться заката на скале Эха, чтобы послушать, как ветер свистит в пустыне ракушках, останавливаясь змеей Леей.", "active"),
-        (mo_id, "Найти место, где кроны деревьев не загораживают созвездие Большой Медведицы, и просто смотреть вверх, пока не слипнутся глаза.", "active"),
-    ]
-
-    for agent_id, goal, status in goals:
-        cursor.execute("""
-            INSERT INTO goals (agent_id, goal, status)
-            VALUES (?, ?, ?)
-        """, (agent_id, goal, status))
-
-    conn.commit()
-
-
-def main():
-    conn = sqlite3.connect(DB_NAME)
-    create_tables(conn)
-
-    # insert_initial_agents(conn)
-    # insert_initial_relationships(conn)
-    # insert_sample_memories_and_goals(conn)
-
-    # cursor = conn.cursor()
-    # cursor.execute("SELECT id, name, mood, personality_type, background FROM agents")
-    # for row in cursor.fetchall():
-    #     print(row)
-    #
-    # cursor.execute(
-    #     "SELECT content, timestamp FROM memories WHERE agent_id = (SELECT id FROM agents WHERE name = 'Мо') AND is_key = 1")
-    # for row in cursor.fetchall():
-    #     print(row)
-
-    conn.close()
-
-
-if __name__ == "__main__":
-    main()
+    await session.commit()

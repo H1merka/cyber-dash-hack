@@ -3,7 +3,8 @@
 Использует LLM для создания характера и начальных воспоминаний.
 """
 
-from llm.client import LLMClient
+from backend.llm.client import LLMClient
+from backend.llm.prompts import PROFILE_GEN_SYSTEM, PROFILE_GEN_TEMPLATE
 import json
 
 # Словарь для преобразования выбора пользователя в промпт
@@ -35,22 +36,14 @@ async def generate_agent_profile(user_input: dict) -> dict:
     # Базовое воспоминание из шаблона
     base_memory = INITIAL_MEMORY_TEMPLATES.get(init_choice, INITIAL_MEMORY_TEMPLATES["местный житель"])
 
-    prompt = f"""
-Ты — генератор персонажей для игры. Создай уникального агента на основе следующих данных:
-
-Имя: {name}
-Тип личности (MBTI): {mbti}
-Предыстория (ввод пользователя): {backstory}
-Базовое начальное воспоминание: "{base_memory}"
-
-Сгенерируй JSON с полями:
-- personality (характер, 1-2 предложения, описывающие личность в контексте предыстории и типа личности)
-- initial_memories (массив из 3-5 начальных воспоминаний, где первое — "{base_memory}", остальные придумай, связанные с предысторией)
-
-Ответ должен быть только JSON, без пояснений.
-"""
+    prompt = PROFILE_GEN_TEMPLATE.format(
+        name=name,
+        mbti=mbti,
+        backstory=backstory,
+        base_memory=base_memory,
+    )
     llm = LLMClient()
-    response = await llm.generate(prompt, system_prompt="Ты креативный генератор персонажей.")
+    response = await llm.generate(prompt, system_prompt=PROFILE_GEN_SYSTEM)
     
     try:
         start = response.find('{')

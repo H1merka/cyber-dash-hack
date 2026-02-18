@@ -5,8 +5,8 @@ AI-интерфейс для бэкенда.
 Здесь описаны основные функции для работы с агентами.
 """
 
-from agents.agent import Agent
-from agents.agent_generator import generate_agent_profile
+from backend.agents.agent import Agent
+from backend.agents.agent_generator import generate_agent_profile
 from typing import List, Dict, Any
 
 # ======================== ОСНОВНЫЕ ФУНКЦИИ ========================

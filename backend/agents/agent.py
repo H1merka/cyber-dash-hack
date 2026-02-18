@@ -41,18 +41,24 @@ class Agent:
             self.relationships.update_affinity(other_agent_id, event_delta)
 
 
-    async def act(self, other_agents_names):
+    async def act(self, other_agents_names, agent_id_map: dict[str, int] | None = None):
         """
-        Принимает решение и возвращает действиее
+        Принимает решение и возвращает действие.
+        agent_id_map: {имя: id} — для корректного поиска отношений.
         """
-        recent = self.memory.get_recent(3)
-        recent_text = " ".join(recent) if recent else "нет недавних событий"
+        recent = self.memory.get_recent(7)
+        recent_text = "\n".join(f"- {m}" for m in recent) if recent else "нет недавних событий"
         mood_label = self.emotions.get_mood_label()
 
-        
+        # Собираем реальные значения симпатии из модуля отношений
         rel_parts = []
+        all_affinities = self.relationships.get_all_affinities()
         for other_name in other_agents_names:
+            # Ищем affinity по agent_id
             affinity = 0
+            if agent_id_map and other_name in agent_id_map:
+                other_id = agent_id_map[other_name]
+                affinity = all_affinities.get(other_id, 0)
             rel_parts.append(f"{other_name}: {affinity}")
         relations_str = ", ".join(rel_parts)
 
