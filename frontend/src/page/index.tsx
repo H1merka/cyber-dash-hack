@@ -11,6 +11,7 @@ import RelationGraph from "../components/RelationGraph";
 import AgentInspector from "../components/AgentInspector";
 import ControlPanel from "../components/ControlPanel";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { useIsMobile, useIsTablet } from "../hooks/useMediaQuery";
 import "./index.css";
 
 const API_URL = "http://localhost:8000";
@@ -22,6 +23,9 @@ export default function Main() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   // WebSocket
   const { connected, lastMessage } = useWebSocket(WS_URL);
@@ -59,7 +63,6 @@ export default function Main() {
     const msg = lastMessage as WSMessage;
 
     if (msg.type === "event") {
-      // Добавить новое событие в начало ленты
       const evData = msg.data as unknown as EventItem;
       setEvents((prev) => [evData, ...prev].slice(0, 50));
     }
@@ -78,7 +81,6 @@ export default function Main() {
     }
 
     if (msg.type === "relation_update") {
-      // Перезагрузить отношения при обновлении
       fetch(`${API_URL}/api/relationships`)
         .then((r) => r.json())
         .then(setRelationships)
@@ -88,42 +90,63 @@ export default function Main() {
 
   // ── Рендер ────────────────────────────────────────────────────────
 
+  if (isMobile) {
+    // ── Мобильная раскладка: вертикальный стек ──
+    return (
+      <div className="page-root page-mobile">
+        <header className="page-header">
+          <h1 className="page-title">🌲 Secret Forest</h1>
+          <div className={`ws-status ${connected ? "online" : "offline"}`}>
+            {connected ? "● онлайн" : "○ офлайн"}
+          </div>
+        </header>
+
+        {/* Карточки агентов — горизонтальная прокрутка */}
+        <div className="agents-row agents-row-mobile">
+          {agents.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              compact
+              selected={selectedAgentId === agent.id}
+              onClick={() =>
+                setSelectedAgentId((prev) => (prev === agent.id ? null : agent.id))
+              }
+            />
+          ))}
+        </div>
+
+        {/* Граф */}
+        <RelationGraph agents={agents} relationships={relationships} compact
+          onSelectAgent={(id) => setSelectedAgentId((prev) => (prev === id ? null : id))}
+        />
+
+        {/* Лента событий */}
+        <EventFeed events={events} loading={loading} />
+
+        {/* Панель управления */}
+        <ControlPanel agents={agents} onRefresh={refreshData} compact />
+
+        {/* Инспектор */}
+        <AgentInspector agentId={selectedAgentId} onClose={() => setSelectedAgentId(null)} fullScreen />
+      </div>
+    );
+  }
+
+  // ── Десктоп / Планшет раскладка ──
+  const gridCols = isTablet ? "1fr 1fr" : "1fr 1fr 340px";
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0a0a14",
-        color: "#ccc",
-        fontFamily: "'Segoe UI', Arial, sans-serif",
-        padding: "20px 24px",
-      }}
-    >
-      {/* Заголовок */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
-      >
-        <h1 style={{ color: "#fff", fontSize: 24, margin: 0 }}>
-          🌲 Secret Forest — Виртуальный мир
-        </h1>
-        <div style={{ fontSize: 12, color: connected ? "#4ade80" : "#f87171" }}>
+    <div className="page-root">
+      <header className="page-header">
+        <h1 className="page-title">🌲 Secret Forest — Виртуальный мир</h1>
+        <div className={`ws-status ${connected ? "online" : "offline"}`}>
           {connected ? "● подключено" : "○ отключено"}
         </div>
       </header>
 
       {/* Карточки агентов */}
-      <div
-        style={{
-          display: "flex",
-          gap: 14,
-          flexWrap: "wrap",
-          marginBottom: 20,
-        }}
-      >
+      <div className="agents-row">
         {agents.map((agent) => (
           <AgentCard
             key={agent.id}
@@ -136,36 +159,19 @@ export default function Main() {
         ))}
       </div>
 
-      {/* Основная сетка: граф + лента + управление */}
+      {/* Основная сетка */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 340px",
-          gap: 16,
-          alignItems: "start",
-        }}
+        className="main-grid"
+        style={{ gridTemplateColumns: gridCols }}
       >
-        {/* Граф отношений */}
-        <RelationGraph
-          agents={agents}
-          relationships={relationships}
-          onSelectAgent={(id) =>
-            setSelectedAgentId((prev) => (prev === id ? null : id))
-          }
+        <RelationGraph agents={agents} relationships={relationships}
+          onSelectAgent={(id) => setSelectedAgentId((prev) => (prev === id ? null : id))}
         />
-
-        {/* Лента событий */}
         <EventFeed events={events} loading={loading} />
-
-        {/* Панель управления */}
         <ControlPanel agents={agents} onRefresh={refreshData} />
       </div>
 
-      {/* Инспектор агента (боковая панель) */}
-      <AgentInspector
-        agentId={selectedAgentId}
-        onClose={() => setSelectedAgentId(null)}
-      />
+      <AgentInspector agentId={selectedAgentId} onClose={() => setSelectedAgentId(null)} />
     </div>
   );
 }

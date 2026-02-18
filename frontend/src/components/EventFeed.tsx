@@ -8,6 +8,7 @@ import type { EventItem } from "../types";
 interface Props {
   events: EventItem[];
   loading?: boolean;
+  compact?: boolean;
 }
 
 function formatTime(iso: string): string {
@@ -23,8 +24,10 @@ export default function EventFeed({ events, loading }: Props) {
         borderRadius: 16,
         border: "1px solid #333",
         padding: "14px 16px",
-        maxHeight: 380,
-        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        overflow: "hidden",
       }}
     >
       <div
@@ -33,11 +36,13 @@ export default function EventFeed({ events, loading }: Props) {
           fontSize: 15,
           color: "#fff",
           marginBottom: 10,
+          flexShrink: 0,
         }}
       >
         Лента событий
       </div>
 
+      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
       {loading && (
         <div style={{ color: "#888", fontSize: 13 }}>Загрузка...</div>
       )}
@@ -79,6 +84,7 @@ export default function EventFeed({ events, loading }: Props) {
           )}
         </div>
       ))}
+      </div>
     </div>
   );
 }

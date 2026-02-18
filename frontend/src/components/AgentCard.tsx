@@ -17,10 +17,11 @@ const MOOD_COLORS: Record<Mood, string> = {
 interface Props {
   agent: Agent;
   selected?: boolean;
+  compact?: boolean;
   onClick?: () => void;
 }
 
-export default function AgentCard({ agent, selected, onClick }: Props) {
+export default function AgentCard({ agent, selected, compact, onClick }: Props) {
   const borderColor = selected ? "#fff" : MOOD_COLORS[agent.mood] ?? "#555";
 
   return (
@@ -28,23 +29,24 @@ export default function AgentCard({ agent, selected, onClick }: Props) {
       onClick={onClick}
       style={{
         background: "rgba(30,30,40,0.85)",
-        borderRadius: 16,
+        borderRadius: compact ? 12 : 16,
         border: `2px solid ${borderColor}`,
-        padding: "14px 18px",
+        padding: compact ? "8px 12px" : "14px 18px",
         cursor: "pointer",
-        minWidth: 160,
+        minWidth: compact ? 110 : 160,
+        flexShrink: 0,
         transition: "border-color 0.2s, transform 0.15s",
         transform: selected ? "scale(1.04)" : undefined,
       }}
     >
-      <div style={{ fontSize: 36, textAlign: "center", marginBottom: 4 }}>
+      <div style={{ fontSize: compact ? 24 : 36, textAlign: "center", marginBottom: compact ? 2 : 4 }}>
         {agent.avatar_emoji}
       </div>
       <div
         style={{
           textAlign: "center",
           fontWeight: 700,
-          fontSize: 16,
+          fontSize: compact ? 13 : 16,
           color: "#fff",
           marginBottom: 2,
         }}
@@ -54,22 +56,24 @@ export default function AgentCard({ agent, selected, onClick }: Props) {
       <div
         style={{
           textAlign: "center",
-          fontSize: 13,
+          fontSize: compact ? 11 : 13,
           color: MOOD_COLORS[agent.mood] ?? "#aaa",
-          marginBottom: 4,
+          marginBottom: compact ? 0 : 4,
         }}
       >
         {MOOD_LABELS[agent.mood] ?? agent.mood}
       </div>
-      <div
-        style={{
-          textAlign: "center",
-          fontSize: 11,
-          color: "#888",
-        }}
-      >
-        {agent.personality_type} — {agent.personality_title}
-      </div>
+      {!compact && (
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: 11,
+            color: "#888",
+          }}
+        >
+          {agent.personality_type} — {agent.personality_title}
+        </div>
+      )}
     </div>
   );
 }

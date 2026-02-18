@@ -8,6 +8,7 @@ import type { Agent, Relationship, RelationType } from "../types";
 interface Props {
   agents: Agent[];
   relationships: Relationship[];
+  compact?: boolean;
   onSelectAgent?: (agentId: number) => void;
 }
 
@@ -31,7 +32,7 @@ function getEdgeColor(type: RelationType, strength: number): string {
   return "#b38cff";
 }
 
-export default function RelationGraph({ agents, relationships, onSelectAgent }: Props) {
+export default function RelationGraph({ agents, relationships, compact, onSelectAgent }: Props) {
   // Дедупликация рёбер (оставляем самое сильное на пару)
   const edgeMap = new Map<string, Relationship>();
   relationships.forEach((r) => {
@@ -67,16 +68,21 @@ export default function RelationGraph({ agents, relationships, onSelectAgent }: 
     <div
       style={{
         background: "rgba(30,30,40,0.85)",
-        borderRadius: 16,
+        borderRadius: compact ? 12 : 16,
         border: "1px solid #333",
-        padding: "14px 16px",
+        padding: compact ? "10px 12px" : "14px 16px",
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        overflow: "hidden",
       }}
     >
       <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", marginBottom: 8 }}>
         Граф отношений
       </div>
 
-      <svg viewBox="0 0 380 440" style={{ width: "100%", maxHeight: 400 }}>
+      <svg viewBox="0 0 380 440" style={{ width: "100%", flex: 1, minHeight: 0 }}>
         {/* Рёбра */}
         {edges.map((edge) => {
           const from = posMap.get(edge.agent_from_id);

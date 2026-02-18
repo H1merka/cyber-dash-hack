@@ -12,9 +12,10 @@ const API_URL = "http://localhost:8000";
 interface Props {
   agentId: number | null;
   onClose: () => void;
+  fullScreen?: boolean;
 }
 
-export default function AgentInspector({ agentId, onClose }: Props) {
+export default function AgentInspector({ agentId, onClose, fullScreen }: Props) {
   const [detail, setDetail] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -39,11 +40,11 @@ export default function AgentInspector({ agentId, onClose }: Props) {
         position: "fixed",
         top: 0,
         right: 0,
-        width: 380,
+        width: fullScreen ? "100vw" : 380,
         height: "100vh",
-        background: "rgba(20,20,30,0.97)",
-        borderLeft: "1px solid #444",
-        padding: "24px 20px",
+        background: fullScreen ? "#0a0a14" : "rgba(20,20,30,0.97)",
+        borderLeft: fullScreen ? "none" : "1px solid #444",
+        padding: fullScreen ? "16px 14px" : "24px 20px",
         overflowY: "auto",
         zIndex: 100,
       }}
